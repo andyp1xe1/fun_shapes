@@ -1,7 +1,9 @@
-## Stuff to do
+# Stuff to do
 - [ ] decide on the language
 - [ ] implement sketch of algorithm
 - [ ] make a demo UI
+
+## Backend
 
 ### Image Processing
 
@@ -20,7 +22,7 @@ Functions:
 - [ ] Append shape to canvas
 - [ ] Export canvas to Image (SVG?)
 
-## Variation of Hill Climbing
+### Variation of Hill Climbing
 
 Functions:
 - [ ] Mutation (Vertex change of a triangle / radius change of an elipse)
@@ -32,6 +34,9 @@ Algorithm:
 4. Rank by fitness these candidates and choose the first
 5. Mutate the new state (only accept mutation if new image is better)
 6. Repeat until desired complexity is achieved
+
+## UI
+*TODO*
 
 ---
 
