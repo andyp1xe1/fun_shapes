@@ -1,5 +1,5 @@
 # Stuff to do
-- [ ] decide on the language
+- [x] decide on the language/platform: *js. react native + expo*
 - [ ] implement sketch of algorithm
 - [ ] make a demo UI
 
