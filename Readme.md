@@ -13,7 +13,7 @@
 ### Image Processing
 
 Functions:
-- [ ] Fitness function [delta e][1], [root mean square deviation][2]
+- [ ] Fitness function [delta-e][1], [root mean square deviation][2]
 - [ ] Average color
 
 ### Image Creation
@@ -46,9 +46,6 @@ Algorithm:
 ## UI
 *TODO*
 
----
-
-**To Read!!!**  
-[1]: http://zschuessler.github.io/DeltaE/learn/  
-[2]: https://en.wikipedia.org/wiki/Root-mean-square_deviation  
+[1]: http://zschuessler.github.io/DeltaE/learn/
+[2]: https://en.wikipedia.org/wiki/Root-mean-square_deviation
 [3]: https://sci-hub.st/10.1109/HICSS.1993.284069
