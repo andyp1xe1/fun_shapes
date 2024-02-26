@@ -1,3 +1,8 @@
+# Project Index:
+- [Main Doc](https://docs.google.com/document/d/1MnbWgbgAq2yvMtld9BMkyIBNHsPChyspgLmIX6H4eH0/edit?usp=sharing)
+- [Meeting Notes](https://docs.google.com/document/d/1O7QY5yMG0Qxx3hBgZhlO9KaMPJBdpR8qYHzNmV9kHB0/edit?usp=sharing)
+- [Trello Board](https://trello.com/b/yTZCJsdB/geometric-art-tool)
+
 # Stuff to do
 - [x] decide on the language/platform: *js. react native + expo*
 - [ ] implement sketch of algorithm
@@ -8,7 +13,7 @@
 ### Image Processing
 
 Functions:
-- [ ] Fitness function ([Delta E](http://zschuessler.github.io/DeltaE/learn/) or [Root-mean-square deviation](https://en.wikipedia.org/wiki/Root-mean-square_deviation))
+- [ ] Fitness function [delta-e][1], [root mean square deviation][2]
 - [ ] Average color
 
 ### Image Creation
@@ -24,6 +29,9 @@ Functions:
 
 ### Variation of Hill Climbing
 
+This variation borrows certain things from the genetic algorithms such as a fitness function and mutations.
+Hill Climbing was chosen due to it's simplicity and efficiency[1]
+
 Functions:
 - [ ] Mutation (Vertex change of a triangle / radius change of an elipse)
 
@@ -38,8 +46,6 @@ Algorithm:
 ## UI
 *TODO*
 
----
-
-Delta E: http://zschuessler.github.io/DeltaE/learn/
-Root-mean-square deviation: https://en.wikipedia.org/wiki/Root-mean-square_deviation
-Python library: https://colour.readthedocs.io/en/latest/index.html
+[1]: http://zschuessler.github.io/DeltaE/learn/
+[2]: https://en.wikipedia.org/wiki/Root-mean-square_deviation
+[3]: https://sci-hub.st/10.1109/HICSS.1993.284069
