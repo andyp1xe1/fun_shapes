@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 export default function Button({ label, onPress }) {
   return (
     <Pressable style={styles.button} onPress={onPress}>
-      <Text>
+      <Text style={styles.text}>
         {label}
       </Text>
     </Pressable>
@@ -12,9 +12,14 @@ export default function Button({ label, onPress }) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#D79921',
+    backgroundColor: '#4d676e',
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 9,
+    color: 'white',
+    fontWeight: 'bold',
   },
+  text: {
+    color: 'white',
+  }
 });

@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Button from './Button';
 
 import ImageViewer from './ImageViewer';
-const PlaceholderImage = require('./assets/images/gruv.jpg')
+const PlaceholderImage = require('./assets/images/main-image.png')
 
 
 //TODO: https://docs.expo.dev/tutorial/image-picker/#use-the-selected-image
@@ -26,11 +26,12 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>
-        Welcome to Fun Shapes!
+        Fun Shapes
       </Text>
       <ImageViewer placeholderImageSource={PlaceholderImage} />
-      <Button label="choose your photo!" onPress={pickImageAsync} />
-      <StatusBar style="auto" />
+      <Button label="Upload" onPress={pickImageAsync} />
+      <Button label="Take a Photo" onPress={pickImageAsync} />
+      <StatusBar style="auto"/>
     </View>
   );
 }
@@ -38,16 +39,18 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#282828',
+    backgroundColor: '#b79c8e',
     color: '#EBDBB2',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 25,
   },
+  
   heading: {
-    color: '#EBDBB2',
-    fontSize: 24,
+    color: '#4d676e',
+    fontSize: 36,
     paddingVertical: 16,
-    fontFamily: 'serif',
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
   },
 });
