@@ -1,6 +1,7 @@
 package main
 
 import (
+	//"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -13,8 +14,14 @@ import (
 
 type Options struct {
 	NumColors, NumShapes, PopulationSize int
-	Dx, Dy                               int
-	Palette                              color.Palette
+	numSamples                           int
+}
+
+type Canvas struct { // TODO fix this crap of code (data structuring)
+	Dx, Dy  int
+	Palette color.Palette
+	dc      *gg.Context
+	img     image.Image
 }
 
 type Shape interface {
@@ -29,73 +36,137 @@ type Rectangle struct {
 	color          color.Color
 }
 
-func (r *Rectangle) Generate(o Options) {
-	r.x = rand.Float64() * float64(o.Dx)
-	r.y = rand.Float64() * float64(o.Dy)
-	r.w = rand.Float64()*100 + 20
-	r.h = rand.Float64()*100 + 20
+func (r *Rectangle) Generate(c Canvas, o Options, i int) {
+	// Set random position within the bounds of the image
+	r.x = rand.Float64() * float64(c.Dx)
+	r.y = rand.Float64() * float64(c.Dy)
+
+	// Define practical proportions for width and height based on the shape number
+	maxWidth := float64(c.Dx) * 0.6  // Set maximum width to 60% of the image width
+	maxHeight := float64(c.Dy) * 0.6 // Set maximum height to 60% of the image height
+	minWidth := 10.0                 // Minimum width
+	minHeight := 5.0                 // Minimum height
+
+	// Adjust the width and height based on the shape number
+	scale := rand.Float64() + float64(o.NumShapes-i)/float64(o.NumShapes)
+	r.w = (maxWidth-minWidth)*scale + minWidth
+	r.h = (maxHeight-minHeight)*scale + minHeight
+
+	// Set random rotation angle
 	r.th = rand.Float64() * 2 * math.Pi
 
-	i := rand.Intn(len(o.Palette))
-	r.color = o.Palette[i]
-
+	// Randomly select a color from the provided palette
+	col := rand.Intn(len(c.Palette))
+	r.color = c.Palette[col]
 }
 
-func (r *Rectangle) Mutate() {
-	//TODO
+func (r *Rectangle) Mutate() *Rectangle {
+	// Adjust position randomly
+	r.x += rand.Float64()*20 - 10 // Randomly adjust x within ±10 pixels
+	r.y += rand.Float64()*20 - 10 // Randomly adjust y within ±10 pixels
+
+	r.w += rand.Float64()*20 - 10 // Randomly adjust width within ±10 pixels
+	r.h += rand.Float64()*20 - 10 // Randomly adjust height within ±10 pixels
+
+	// Adjust rotation angle randomly
+	maxRotation := 0.2                                 // Maximum rotation in radians
+	r.th += rand.Float64()*maxRotation*2 - maxRotation // Randomly adjust rotation within ±maxRotation
+	return r
+}
+
+func (r *Rectangle) Score(o Options, c Canvas) float64 {
+	ctx := gg.NewContext(c.dc.Width(), c.dc.Height())
+	ctx.DrawImage(c.dc.Image(), 0, 0)
+	r.Draw(ctx)
+	r.score = fitness2(c.img, ctx, o.numSamples)
+	return r.score
 }
 
 func (r *Rectangle) Draw(dc *gg.Context) {
+	// Save the current transformation matrix
 	dc.Push()
+
+	// Translate to the center of the rectangle
+	centerX := r.x + r.w/2
+	centerY := r.y + r.h/2
+	dc.Translate(centerX, centerY)
+
+	// Rotate around the center of the rectangle
+	dc.RotateAbout(r.th, 0, 0)
+
+	// Translate back to the top-left corner of the rectangle
+	dc.Translate(-r.w/2, -r.h/2)
+
+	// Set the color and draw the rectangle
 	dc.SetColor(r.color)
-	dc.Rotate(r.th)
-	dc.DrawRectangle(r.x, r.y, r.w, r.h)
+	dc.DrawRectangle(0, 0, r.w, r.h)
 	dc.Fill()
+
+	// Restore the previous transformation matrix
 	dc.Pop()
 }
 
 func main() {
-	img, _ := gg.LoadImage("./in.png")
-	options := Options{
-		NumColors:      255,
+	_img, _ := gg.LoadImage("./in.png")
+	o := Options{
+		NumColors:      100,
 		NumShapes:      200,
-		PopulationSize: 30,
-		Dx:             img.Bounds().Dx() / 4,
-		Dy:             img.Bounds().Dy() / 4,
+		PopulationSize: 60,
 	}
-	img = resize.Thumbnail(uint(options.Dx), uint(options.Dy), img, resize.Lanczos2)
 
-	options.Palette = quantizeImage(img, options.NumColors)
-	dc := gg.NewContext(options.Dx, options.Dy)
+	c := Canvas{
+		Dx: _img.Bounds().Dx() / 4,
+		Dy: _img.Bounds().Dy() / 4,
+	}
 
-	avgColor := averageColor(options.Palette)
+	c.img = resize.Thumbnail(uint(c.Dx), uint(c.Dy), _img, resize.Lanczos2)
+	o.numSamples = c.Dx * c.Dy * 7 / 100
 
-	dc.SetColor(avgColor)
-	dc.Clear()
+	c.Palette = quantizeImage(c.img, o.NumColors)
+	c.dc = gg.NewContext(c.Dx, c.Dy)
 
-	for range options.NumShapes {
-		//bestRect := &Rectangle{score: -math.MaxFloat64}
+	avgColor := averageColor(c.Palette)
+
+	c.dc.SetColor(avgColor)
+	c.dc.Clear()
+
+	for i := range o.NumShapes {
 		var bestRect *Rectangle
+		//toDraw := false
+		for range o.PopulationSize {
+			ctx := gg.NewContext(c.dc.Width(), c.dc.Height())
+			ctx.DrawImage(c.dc.Image(), 0, 0)
 
-		for range options.PopulationSize {
-			ctx := gg.NewContext(dc.Width(), dc.Height())
-			ctx.DrawImage(dc.Image(), 0, 0)
 			rect := &Rectangle{}
-			rect.Generate(options)
-			rect.Draw(ctx)
+			rect.Generate(c, o, i)
+			rect.Score(o, c)
 
-			rect.score = fitness(img, ctx)
-			if bestRect == nil || rect.score > bestRect.score {
-				bestRect = rect
-				//dc = ctx
+			rect.score = fitness2(c.img, ctx, o.numSamples)
+			if bestRect == nil || rect.score < bestRect.score {
+				mutRect := &Rectangle{
+					x:     rect.x,
+					y:     rect.y,
+					w:     rect.w,
+					th:    rect.th,
+					color: rect.color,
+				}
+				mutRect.Mutate()
+				mutRect.Score(o, c)
+				if mutRect.score < rect.score {
+					bestRect = mutRect
+				} else {
+					bestRect = rect
+				}
 			}
 		}
-
-		bestRect.Draw(dc)
-
+		//if toDraw {
+		bestRect.Draw(c.dc)
 		println(bestRect.score)
+		//i++
+		//}
+
 	}
-	dc.SavePNG("out.png")
+	c.dc.SavePNG("out00.png")
 }
 
 func averageColor(p color.Palette) color.Color {
@@ -140,13 +211,38 @@ func addOpacity(o []color.Color, opacity float64) []color.Color {
 	return p
 }
 
-// vvvv  !!!!!!!!!!!!!!!!!!! CHATGPT CODE !!!!!!!!!!!!!!!!!!!   vvvv
-func fitness(originalImg image.Image, generatedImg *gg.Context) float64 {
+func fitness2(originalImg image.Image, ctx *gg.Context, numSamples int) float64 {
+	generatedImg := ctx.Image()
+
+	// Calculate Mean Squared Error (MSE)
+	var total uint64
+	bounds := originalImg.Bounds()
+	for range numSamples {
+		x := bounds.Min.X + rand.Intn(bounds.Dx())
+		y := bounds.Min.Y + rand.Intn(bounds.Dy())
+
+		originalColor := originalImg.At(x, y)
+		generatedColor := generatedImg.At(x, y)
+
+		r1, g1, b1, _ := originalColor.RGBA()
+		r2, g2, b2, _ := generatedColor.RGBA()
+		r := r1 - r2
+		g := g1 - g2
+		b := b1 - b2
+		//a := a1 - a2
+		total += uint64(r*r + g*g + b*b) // + a*a
+	}
+
+	//return math.Sqrt(float64(total)/float64(numSamples*3)) / 225
+	return math.Log(float64(total))
+}
+
+func fitness(originalImg image.Image, generatedImg *gg.Context) uint64 {
 	// Convert generated image to image.Image
 	generatedImage := generatedImg.Image()
 
 	// Calculate Mean Squared Error (MSE)
-	var mse float64
+	var mse uint64
 	bounds := originalImg.Bounds()
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
@@ -156,14 +252,13 @@ func fitness(originalImg image.Image, generatedImg *gg.Context) float64 {
 			r1, g1, b1, _ := originalColor.RGBA()
 			r2, g2, b2, _ := generatedColor.RGBA()
 
-			mse += math.Pow(float64(r1-r2), 2) + math.Pow(float64(g1-g2), 2) + math.Pow(float64(b1-b2), 2)
+			r := r1 - r2
+			g := g1 - g2
+			b := b1 - b2
+			//a := a1 - a2
+			mse += uint64(r*r + g*g + b*b)
 		}
 	}
 
-	// Normalize MSE
-	numPixels := float64(bounds.Dx() * bounds.Dy())
-	maxPossibleMSE := 3 * math.Pow(255, 2) // Maximum pixel value is 255
-	normalizedMSE := mse / (numPixels * maxPossibleMSE)
-
-	return normalizedMSE
-} //   ^^^^  !!!!!!!!!!!!!!!!!!! CHATGPT CODE !!!!!!!!!!!!!!!!!!!   ^^^^
+	return mse
+}
