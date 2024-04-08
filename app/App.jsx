@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
+import {encode} from 'base-64';
 
 import Button from './Button';
 
@@ -13,7 +14,19 @@ const PlaceholderImage = require('./assets/images/main-image.png')
 
 
 //TODO: https://docs.expo.dev/tutorial/image-picker/#use-the-selected-image
+
+
+
+
 export default function App() {
+
+ 
+
+
+
+
+
+
   const [selectedImage, setSelectedImage] = useState(null);
 
   const pickImageAsync = async () => {
@@ -30,6 +43,33 @@ export default function App() {
       alert('You did not select any image.');
     }
   };
+
+
+
+   // websockets implementation
+   const ws = new WebSocket('ws://192.168.233.170:8080/ws');
+   ws.onopen = () => {
+    const base64 = `data:${selectedImage.type};base64,${encode(
+      selectedImage.data
+    )}`;
+    ws.send(base64);
+    console.log(base64);
+    console.log(selectedImage);
+  };
+   
+   ws.onmessage = e => {
+     // a message was received
+     console.log(e.data);
+   };
+   ws.onerror = e => {
+     // an error occurred
+     console.log(e.message);
+   };
+   ws.onclose = e => {
+     // connection closed
+     console.log(e.code, e.reason);
+   };
+   
 
   return (
     <View style={styles.container}>
