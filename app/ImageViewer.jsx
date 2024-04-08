@@ -13,4 +13,3 @@ export default function ImageViewer({ placeholderImageSource, selectedImage }) {
       borderRadius: 18,
     },
   });
-
