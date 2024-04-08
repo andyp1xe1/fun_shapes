@@ -1,8 +1,10 @@
+// cd ./app/
 // npx expo start
 
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useState } from 'react';
 
 import Button from './Button';
 
@@ -12,6 +14,8 @@ const PlaceholderImage = require('./assets/images/main-image.png')
 
 //TODO: https://docs.expo.dev/tutorial/image-picker/#use-the-selected-image
 export default function App() {
+  const [selectedImage, setSelectedImage] = useState(null);
+
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
@@ -20,6 +24,8 @@ export default function App() {
 
     if (!result.canceled) {
       console.log(result);
+      setSelectedImage(result.assets[0].uri);
+      
     } else {
       alert('You did not select any image.');
     }
@@ -30,7 +36,9 @@ export default function App() {
       <Text style={styles.heading}>
         Fun Shapes
       </Text>
-      <ImageViewer placeholderImageSource={PlaceholderImage} />
+      <ImageViewer 
+        placeholderImageSource={PlaceholderImage}
+        selectedImage={selectedImage} />
       <Button label="Upload" onPress={pickImageAsync} />
       <Button label="Take a Photo" onPress={pickImageAsync} />
       <StatusBar style="auto"/>
