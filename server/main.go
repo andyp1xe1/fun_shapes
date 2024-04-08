@@ -36,7 +36,7 @@ type Rectangle struct {
 	color          color.Color
 }
 
-func (r *Rectangle) Generate(c Canvas, o Options, i int) {
+func (r *Rectangle) GenerateByNum(c Canvas, o Options, i int) {
 	// Set random position within the bounds of the image
 	r.x = rand.Float64() * float64(c.Dx)
 	r.y = rand.Float64() * float64(c.Dy)
@@ -52,25 +52,35 @@ func (r *Rectangle) Generate(c Canvas, o Options, i int) {
 	r.w = (maxWidth-minWidth)*scale + minWidth
 	r.h = (maxHeight-minHeight)*scale + minHeight
 
-	// Set random rotation angle
 	r.th = rand.Float64() * 2 * math.Pi
 
-	// Randomly select a color from the provided palette
 	col := rand.Intn(len(c.Palette))
 	r.color = c.Palette[col]
 }
 
+func (r *Rectangle) Generate(c Canvas) {
+	r.x = rand.Float64() * float64(c.Dx)
+	r.y = rand.Float64() * float64(c.Dy)
+	r.w = rand.Float64()*100 + 2
+	r.h = rand.Float64()*100 + 2
+	r.th = rand.Float64() * 2 * math.Pi
+
+	i := rand.Intn(len(c.Palette))
+	r.color = c.Palette[i]
+
+}
+
 func (r *Rectangle) Mutate() *Rectangle {
 	// Adjust position randomly
-	r.x += rand.Float64()*20 - 10 // Randomly adjust x within ±10 pixels
-	r.y += rand.Float64()*20 - 10 // Randomly adjust y within ±10 pixels
+	r.x += rand.Float64()*20 - 10
+	r.y += rand.Float64()*20 - 10
 
-	r.w += rand.Float64()*20 - 10 // Randomly adjust width within ±10 pixels
-	r.h += rand.Float64()*20 - 10 // Randomly adjust height within ±10 pixels
+	r.w += rand.Float64()*20 - 10
+	r.h += rand.Float64()*20 - 10
 
 	// Adjust rotation angle randomly
-	maxRotation := 0.2                                 // Maximum rotation in radians
-	r.th += rand.Float64()*maxRotation*2 - maxRotation // Randomly adjust rotation within ±maxRotation
+	maxRotation := 0.2
+	r.th += rand.Float64()*maxRotation*2 - maxRotation
 	return r
 }
 
@@ -78,39 +88,32 @@ func (r *Rectangle) Score(o Options, c Canvas) float64 {
 	ctx := gg.NewContext(c.dc.Width(), c.dc.Height())
 	ctx.DrawImage(c.dc.Image(), 0, 0)
 	r.Draw(ctx)
-	r.score = fitness2(c.img, ctx, o.numSamples)
+	r.score = old_fitness_monte(c.img, ctx, o.numSamples)
 	return r.score
 }
 
 func (r *Rectangle) Draw(dc *gg.Context) {
-	// Save the current transformation matrix
 	dc.Push()
 
-	// Translate to the center of the rectangle
 	centerX := r.x + r.w/2
 	centerY := r.y + r.h/2
+
 	dc.Translate(centerX, centerY)
-
-	// Rotate around the center of the rectangle
 	dc.RotateAbout(r.th, 0, 0)
-
-	// Translate back to the top-left corner of the rectangle
 	dc.Translate(-r.w/2, -r.h/2)
 
-	// Set the color and draw the rectangle
 	dc.SetColor(r.color)
 	dc.DrawRectangle(0, 0, r.w, r.h)
 	dc.Fill()
 
-	// Restore the previous transformation matrix
 	dc.Pop()
 }
 
 func main() {
-	_img, _ := gg.LoadImage("./in.png")
+	_img, _ := gg.LoadImage("./in2.jpg")
 	o := Options{
 		NumColors:      100,
-		NumShapes:      200,
+		NumShapes:      80,
 		PopulationSize: 60,
 	}
 
@@ -120,7 +123,7 @@ func main() {
 	}
 
 	c.img = resize.Thumbnail(uint(c.Dx), uint(c.Dy), _img, resize.Lanczos2)
-	o.numSamples = c.Dx * c.Dy * 7 / 100
+	o.numSamples = c.Dx * c.Dy * 2 / 100
 
 	c.Palette = quantizeImage(c.img, o.NumColors)
 	c.dc = gg.NewContext(c.Dx, c.Dy)
@@ -130,7 +133,7 @@ func main() {
 	c.dc.SetColor(avgColor)
 	c.dc.Clear()
 
-	for i := range o.NumShapes {
+	for range o.NumShapes {
 		var bestRect *Rectangle
 		//toDraw := false
 		for range o.PopulationSize {
@@ -138,26 +141,30 @@ func main() {
 			ctx.DrawImage(c.dc.Image(), 0, 0)
 
 			rect := &Rectangle{}
-			rect.Generate(c, o, i)
+			rect.Generate(c)
 			rect.Score(o, c)
 
-			rect.score = fitness2(c.img, ctx, o.numSamples)
 			if bestRect == nil || rect.score < bestRect.score {
-				mutRect := &Rectangle{
-					x:     rect.x,
-					y:     rect.y,
-					w:     rect.w,
-					th:    rect.th,
-					color: rect.color,
-				}
-				mutRect.Mutate()
-				mutRect.Score(o, c)
-				if mutRect.score < rect.score {
-					bestRect = mutRect
-				} else {
-					bestRect = rect
-				}
+				bestRect = rect
 			}
+			// Example of using mutation
+			//rect.score = fitness2(c.img, ctx, o.numSamples)
+			//if bestRect == nil || rect.score < bestRect.score {
+			//	mutRect := &Rectangle{
+			//		x:     rect.x,
+			//		y:     rect.y,
+			//		w:     rect.w,
+			//		th:    rect.th,
+			//		color: rect.color,
+			//	}
+			//	mutRect.Mutate()
+			//	mutRect.Score(o, c)
+			//	if mutRect.score < rect.score {
+			//		bestRect = mutRect
+			//	} else {
+			//		bestRect = rect
+			//	}
+			//}
 		}
 		//if toDraw {
 		bestRect.Draw(c.dc)
@@ -166,7 +173,7 @@ func main() {
 		//}
 
 	}
-	c.dc.SavePNG("out00.png")
+	c.dc.SavePNG("old_monte_carlo1.png")
 }
 
 func averageColor(p color.Palette) color.Color {
@@ -190,7 +197,6 @@ func averageColor(p color.Palette) color.Color {
 	}
 }
 
-// Quantize the image to a palette
 func quantizeImage(img image.Image, numColors int) color.Palette {
 	palette := make(color.Palette, 0, numColors)
 	q := quantize.MedianCutQuantizer{}
@@ -211,7 +217,62 @@ func addOpacity(o []color.Color, opacity float64) []color.Color {
 	return p
 }
 
-func fitness2(originalImg image.Image, ctx *gg.Context, numSamples int) float64 {
+func old_fitness_monte(originalImg image.Image, ctx *gg.Context, numSamples int) float64 {
+	generatedImg := ctx.Image()
+
+	var total float64
+	bounds := originalImg.Bounds()
+	for range numSamples {
+		x := bounds.Min.X + rand.Intn(bounds.Dx())
+		y := bounds.Min.Y + rand.Intn(bounds.Dy())
+
+		originalColor := originalImg.At(x, y)
+		generatedColor := generatedImg.At(x, y)
+
+		r1, g1, b1, _ := originalColor.RGBA()
+		r2, g2, b2, _ := generatedColor.RGBA()
+
+		total += math.Pow(float64(r2-r1), 2) + math.Pow(float64(g2-g1), 2) + math.Pow(float64(b2-b1), 2)
+
+	}
+	return math.Sqrt(float64(total)/float64(numSamples*3)) / 225
+
+}
+
+func old_fitness(originalImg image.Image, generatedImg *gg.Context) float64 {
+	// Convert generated image to image.Image
+	generatedImage := generatedImg.Image()
+
+	// Calculate Mean Squared Error (MSE)
+	var mse float64
+	bounds := originalImg.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			originalColor := originalImg.At(x, y)
+			generatedColor := generatedImage.At(x, y)
+
+			r1, g1, b1, _ := originalColor.RGBA()
+			r2, g2, b2, _ := generatedColor.RGBA()
+
+			println(r1, g1, b1)
+			println(r2, g2, b2)
+
+			println("dr: r1 - r2: ", r1-r2)
+			println("dr to flotat: ", float64(r1-r2))
+			println("dr^2: ", math.Pow(float64(r1-r2), 2))
+			mse += math.Pow(float64(r1-r2), 2) + math.Pow(float64(g1-g2), 2) + math.Pow(float64(b1-b2), 2)
+		}
+	}
+
+	// Normalize MSE
+	numPixels := float64(bounds.Dx() * bounds.Dy())
+	maxPossibleMSE := 3 * math.Pow(255, 2) // Maximum pixel value is 255
+	normalizedMSE := mse / (numPixels * maxPossibleMSE)
+
+	return normalizedMSE
+}
+
+func fitness_monte(originalImg image.Image, ctx *gg.Context, numSamples int) float64 {
 	generatedImg := ctx.Image()
 
 	// Calculate Mean Squared Error (MSE)
