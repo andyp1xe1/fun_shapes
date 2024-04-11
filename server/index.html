@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Creation Viewer</title>
+    <style>
+        #image {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <img id="image" src="" alt="Current Image">
+    </div>
+
+    <script>
+        function updateImage() {
+            fetch('http://localhost:8080/frame')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    document.getElementById('image').src = imageUrl;
+                })
+                .catch(error => {
+                    console.error('Error fetching image:', error);
+                });
+        }
+
+        setInterval(updateImage, 700);
+        updateImage();
+    </script>
+</body>
+</html>
