@@ -2,20 +2,19 @@ package network
 
 import (
 	"bytes"
+	//"encoding/json"
 	"fmt"
-	"fun_shapes/server/generator"
+	"github.com/fogleman/gg"
 	"net/http"
-	"sync"
+	//"sync"
 )
 
-var (
-	currentImage []byte
-	mutex        sync.Mutex
-)
+var imgChan = make(chan []byte, 10)
 
-func StartServer(o *generator.Options) {
+func StartServer() {
+	//http.HandleFunc("/conf", setOpts)
 	http.HandleFunc("/frame", getCurrentImage)
-	http.HandleFunc("/", serveViewer) // Add handler to serve the viewer HTML page
+	http.HandleFunc("/", serveViewer)
 	go func() {
 		fmt.Println("Server started at http://localhost:8080")
 		err := http.ListenAndServe(":8080", nil)
@@ -26,29 +25,45 @@ func StartServer(o *generator.Options) {
 }
 
 func getCurrentImage(w http.ResponseWriter, r *http.Request) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	if currentImage == nil {
+	select {
+	case img := <-imgChan:
+		w.Header().Set("Content-Type", "image/png")
+		w.Write(img)
+	default:
 		http.Error(w, "No image available", http.StatusNotFound)
+	}
+}
+
+func UpdateCurrentImg(dc *gg.Context) {
+	var buf bytes.Buffer
+	err := dc.EncodePNG(&buf)
+	if err != nil {
+		fmt.Println("Error encoding PNG:", err)
 		return
 	}
-	w.Header().Set("Content-Type", "image/png")
-	w.Write(currentImage)
+	select {
+	case imgChan <- buf.Bytes():
+	default:
+		fmt.Println("Skipping image update; channel is full")
+	}
 }
 
 func serveViewer(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "index.html")
 }
 
-func UpdateCurrentImg(c *generator.Canvas) {
-	var buf bytes.Buffer
-	err := c.Dc.EncodePNG(&buf)
-	if err != nil {
-		fmt.Println("Error encoding PNG:", err)
-		return
-	}
-
-	mutex.Lock()
-	defer mutex.Unlock()
-	currentImage = buf.Bytes()
-}
+//func setOpts(w http.ResponseWriter, r *http.Request) {
+//	if r.Method != http.MethodPost {
+//		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+//		return
+//	}
+//
+//	var newOpts generator.Options
+//	decoder := json.NewDecoder(r.Body)
+//	if err := decoder.Decode(&newOpts); err != nil {
+//		http.Error(w, err.Error(), http.StatusBadRequest)
+//		return
+//	}
+//
+//	generator.UpdateOptions(&newOpts)
+//}

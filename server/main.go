@@ -1,34 +1,80 @@
 package main
 
 import (
+	"fmt"
 	gen "fun_shapes/server/generator"
 	net "fun_shapes/server/network"
 	"github.com/fogleman/gg"
+	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 )
 
+// TODO Opts chan. image recv post req. multiple alg instances
 func main() {
+	net.StartServer()
 	o := &gen.Opts
-	net.StartServer(o)
+	//o := <-gen.OptsCh
 
 	img, _ := gg.LoadImage(o.InPath)
 	c := gen.NewCanvas(img)
 
-	o.NumSamples = c.Dx * c.Dy * 4 / 100
+	numMonteSamples := int(float64(c.Dx*c.Dy) * o.MonteDensity)
 
-	for i := 0; i < o.NumShapes; i++ {
-		var wg sync.WaitGroup
-		shapes := make([]gen.Shape, o.PopulationSize)
+	// Random col. example
+	// i := rand.Intn(len(c.Palette))
+	// s.Color = c.Palette[i]
+	procSteps := []procConf{
+		{
+			NumShapes:      o.NumMonteShapes,
+			PopulationSize: o.PopulationSize,
+			Ctx:            c.Dc,
+			Fn: func() gen.Shape {
+				shape := gen.NewShape(c, o.ShapeType)
+				shape.SetColFrom(c)
+				c.EvalScoreMonte(shape, numMonteSamples)
+				return shape
+			},
+		}, {
+			NumShapes:      o.NumSolidShapes,
+			PopulationSize: o.PopulationSize,
+			Ctx:            c.Dc,
+			Fn: func() gen.Shape {
+				shape := gen.NewShape(c, o.ShapeType)
+				shape.SetColFrom(c)
+				c.EvalScore(shape)
+				return shape
+			},
+		}, {
+			NumShapes:      o.NumOpaqueShapes,
+			PopulationSize: o.PopulationSize,
+			Ctx:            c.Dc,
+			Fn: func() gen.Shape {
+				shape := gen.NewShape(c, o.ShapeType)
+				col := shape.SetColFrom(c)
+				shape.SetCol(gen.ColAddOpacity(col, 0.8))
+				c.EvalScore(shape)
+				return shape
+			},
+		},
+	}
 
-		for j := 0; j < o.PopulationSize; j++ {
+	for _, conf := range procSteps {
+		processor(conf)
+	}
+	c.Dc.SavePNG(genOutPath(o.InPath))
+}
+
+func processor(conf procConf) {
+	for i := 0; i < conf.NumShapes; i++ {
+		wg := sync.WaitGroup{}
+		shapes := make([]gen.Shape, conf.PopulationSize)
+		for j := 0; j < conf.PopulationSize; j++ {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
-
-				shape := gen.NewShape("Rectangle", c)
-				c.EvalScore(shape, i < o.PopulationSize/3)
-				shapes[idx] = shape
+				shapes[idx] = conf.Fn()
 			}(j)
 		}
 		wg.Wait()
@@ -38,10 +84,27 @@ func main() {
 		})
 
 		bestShape := shapes[0]
-		bestShape.Draw(c.Dc)
+		bestShape.Draw(conf.Ctx)
 		println(bestShape.GetScore())
-		net.UpdateCurrentImg(c)
+		net.UpdateCurrentImg(conf.Ctx)
 
 	}
-	c.Dc.SavePNG(o.OutPath)
+}
+
+type ProcFunc func() gen.Shape
+type procConf struct {
+	NumShapes      int
+	PopulationSize int
+	Fn             ProcFunc
+	Ctx            *gg.Context
+}
+
+func genOutPath(originalPath string) string {
+	filename := filepath.Base(originalPath)
+	filenameWithoutExt := filename[:len(filename)-len(filepath.Ext(filename))]
+	timestamp := time.Now().Format("20060102_150405")
+	newFilename := fmt.Sprintf("%s_%s.png", filenameWithoutExt, timestamp)
+	out := filepath.Join("./img_res", newFilename)
+	println("Saving to", out)
+	return out
 }

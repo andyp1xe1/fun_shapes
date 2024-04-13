@@ -10,41 +10,18 @@ import (
 
 type Rectangle struct {
 	X, Y, W, H, Th float64
-	Err            float64
 	Score          float64
 	Color          color.Color
 }
 
-func (r *Rectangle) GenerateByNum(c *Canvas, i int) {
-	// Set random position within the bounds of the image
-	r.X = rand.Float64() * float64(c.Dx)
-	r.Y = rand.Float64() * float64(c.Dy)
-
-	maxWidth := float64(c.Dx) * 0.6
-	maxHeight := float64(c.Dy) * 0.6
-	minWidth := 10.0
-	minHeight := 5.0
-
-	scale := rand.Float64() + float64(Opts.NumShapes-i)/float64(Opts.NumShapes)
-	r.W = (maxWidth-minWidth)*scale + minWidth
-	r.H = (maxHeight-minHeight)*scale + minHeight
-
-	r.Th = rand.Float64() * 2 * math.Pi
-
-	col := rand.Intn(len(c.Palette))
-	r.Color = c.Palette[col]
-}
-
-func (r *Rectangle) Generate(c *Canvas) {
-	r.X = rand.Float64() * float64(c.Dx)
-	r.Y = rand.Float64() * float64(c.Dy)
+func NewRect(dx, dy int) *Rectangle {
+	r := &Rectangle{}
+	r.X = rand.Float64() * float64(dx)
+	r.Y = rand.Float64() * float64(dy)
 	r.W = rand.Float64()*100 + 2
 	r.H = rand.Float64()*150 + 2
 	r.Th = rand.Float64() * 2 * math.Pi
-
-	i := rand.Intn(len(c.Palette))
-	r.Color = c.Palette[i]
-
+	return r
 }
 
 func (r *Rectangle) Mutate() *Rectangle {
@@ -77,10 +54,25 @@ func (r *Rectangle) Draw(dc *gg.Context) {
 	dc.Pop()
 }
 
+func (r *Rectangle) SetColFrom(c *Canvas) color.Color {
+	cx := r.X + r.W/2
+	cy := r.Y + r.H/2
+	r.Color = c.ColorAt(cx, cy)
+	return r.Color
+}
+
 func (r *Rectangle) SetScore(score float64) {
 	r.Score = score
 }
 
 func (r *Rectangle) GetScore() float64 {
 	return r.Score
+
+}
+func (r *Rectangle) SetCol(c color.Color) {
+	r.Color = c
+}
+
+func (r *Rectangle) GetCol() color.Color {
+	return r.Color
 }

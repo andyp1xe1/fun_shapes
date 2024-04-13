@@ -1,15 +1,31 @@
 package generator
 
 type Options struct {
-	NumColors, NumShapes, PopulationSize, NumSamples int
-	InPath, OutPath                                  string
+	NumSolidShapes  int
+	NumOpaqueShapes int
+	NumMonteShapes  int
+	MonteDensity    float64
+	PopulationSize  int
+	InPath          string
+	ShapeType       string
+	//NumColors         int
 }
 
 var Opts = Options{
-	NumColors:      256,
-	NumShapes:      600,
-	PopulationSize: 150,
-	NumSamples:     0,
-	InPath:         "./in2.jpg",
-	OutPath:        "out2.png",
+	//NumColors:       256,
+	NumSolidShapes:  40,
+	NumOpaqueShapes: 30,
+	NumMonteShapes:  80,
+	MonteDensity:    0.4,
+	PopulationSize:  150,
+	InPath:          "./img_test/in.png",
+	ShapeType:       "Rectangle",
 }
+
+//func UpdateOptions(newOpts *Options) {
+//	currentOpts = *newOpts
+//}
+//
+//func GetOptions() *Options {
+//	return &currentOpts
+//}
