@@ -13,13 +13,13 @@ type Options struct {
 
 var Opts = Options{
 	//NumColors:       256,
-	NumSolidShapes:  40,
+	NumSolidShapes:  200,
 	NumOpaqueShapes: 30,
 	NumMonteShapes:  80,
 	MonteDensity:    0.4,
 	PopulationSize:  150,
 	InPath:          "./img_test/in.png",
-	ShapeType:       "Rectangle",
+	ShapeType:       "All",
 }
 
 //func UpdateOptions(newOpts *Options) {

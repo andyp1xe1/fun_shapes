@@ -1,8 +1,10 @@
 package generator
 
 import (
-	"github.com/fogleman/gg"
 	"image/color"
+	"math/rand"
+
+	"github.com/fogleman/gg"
 )
 
 type Shape interface {
@@ -27,6 +29,19 @@ func NewShape(c *Canvas, ShapeType string) Shape {
 		s = NewTrig(c.Dx, c.Dy)
 	case "Rectangle":
 		s = NewRect(c.Dx, c.Dy)
+	case "Ellipse":
+		s = NewEllipse(c.Dx, c.Dy)
+	case "All":
+		vari := rand.Float64()
+		if vari <= 0.3 {
+			s = NewTrig(c.Dx, c.Dy)
+		}
+		if vari < 0.6 && vari > 0.3 {
+			s = NewRect(c.Dx, c.Dy)
+		}
+		if vari >= 0.6 {
+			s = NewEllipse(c.Dx, c.Dy)
+		}
 	default:
 		panic("Unknown shape type")
 
