@@ -41,16 +41,12 @@ func (r *Ellipse) Mutate() *Ellipse {
 	r.Th += rand.Float64()*maxRotation*2 - maxRotation
 	return r
 }
-func (r *Ellipse) Draw(dc *gg.Context) {
+func (e *Ellipse) Draw(dc *gg.Context) {
 	dc.Push()
-	dc.Translate(r.X, r.Y)
-	//dc.RotateAbout(r.Th, 0, 0)
-	//dc.Translate(-r.X, -r.Y)
-
-	dc.SetColor(r.Color)
-	dc.DrawEllipse(0, 0, r.Rx, r.Ry)
+	dc.RotateAbout(e.Th, e.X, e.Y)
+	dc.SetColor(e.Color)
+	dc.DrawEllipse(e.X, e.Y, e.Rx, e.Ry)
 	dc.Fill()
-
 	dc.Pop()
 }
 

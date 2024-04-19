@@ -39,18 +39,11 @@ func (r *Rectangle) Mutate() *Rectangle {
 }
 func (r *Rectangle) Draw(dc *gg.Context) {
 	dc.Push()
-
-	centerX := r.X + r.W/2
-	centerY := r.Y + r.H/2
-
-	dc.Translate(centerX, centerY)
-	dc.RotateAbout(r.Th, 0, 0)
-	dc.Translate(-r.W/2, -r.H/2)
-
+	dc.Translate(float64(r.X), float64(r.Y))
+	dc.Rotate(r.Th)
 	dc.SetColor(r.Color)
-	dc.DrawRectangle(0, 0, r.W, r.H)
+	dc.DrawRectangle(-r.W/2, -r.H/2, r.W, r.H)
 	dc.Fill()
-
 	dc.Pop()
 }
 
