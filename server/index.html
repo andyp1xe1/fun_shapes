@@ -13,8 +13,107 @@
 </head>
 <body>
     <div>
+    <h2>Upload Image</h2>
+    <form id= "imgupload" action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*">
+        <input id="uploadBtn" type="submit" value="Upload">
+    </form>
+    </div>
+
+    <div>
+        <form id="settings" action="/submit" method="post" target="/">
+            <input type="radio" id="rectangle" name="shape" value="1">
+            <label for="rectangle">Rectangle</label>
+    
+            <input type="radio" id="triangle" name="shape" value="2">
+            <label for="triangle">Triangle</label>
+    
+            <input type="radio" id="ellipse" name="shape" value="3">
+            <label for="ellipse">Ellipse</label>
+    
+            <input type="radio" id="all" name="shape" value="4">
+            <label for="all">All</label>
+    
+            <br><br>
+    
+            SolidShapes: <input type="range" id="solidshapes" name="solidshapes" min="1" max="1000" value="500">
+            <br>
+            OpaqueShapes: <input type="range" id="opaqueshapes" name="opaqueshapes" min="1" max="1000" value="30">
+            <br>
+            MonteShapes: <input type="range" id="monteshapes" name="monteshapes" min="1" max="1000" value="25">
+            <br>
+            MonteDensity: <input type="range" id="montedensity" name="montedensity" min="0" max="1" step="0.01" value="0.4">
+            <br>
+            <!-- Submit button -->
+            <input id="submitBtn" type="submit" value="Submit">
+        </form>
+    </div>
+    <div>
         <img id="image" src="" alt="Current Image">
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Find the form element for uploading image
+            var imgUploadForm = document.querySelector("#imgupload");
+    
+            // Add an event listener for image upload form submission
+            imgUploadForm.addEventListener("submit", function(event) {
+                event.preventDefault(); // Prevent the default form submission
+    
+                // Collect form data
+                var formData = new FormData(imgUploadForm);
+    
+                // Log form data
+                console.log("Image Upload Form Data:", formData);
+    
+                // Perform AJAX submission using Axios
+                axios.post("/upload", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    }
+                })
+                .then(function(response) {
+                    // Handle successful image upload
+                    console.log("Image uploaded successfully");
+                    // Optionally, update the displayed image after successful upload
+                    updateImage();
+                    document.getElementById("imgupload").style.display = "none";
+                })
+                .catch(function(error) {
+                    // Handle error
+                    console.error("Error uploading image:", error);
+                });
+            });
+    
+            // Find the form element for submitting shape options
+            var settingsForm = document.querySelector("#settings");
+    
+            // Add an event listener for shape options form submission
+            settingsForm.addEventListener("submit", function(event) {
+                event.preventDefault(); // Prevent the default form submission
+    
+                // Collect form data
+                var formData = new FormData(settingsForm);
+    
+                // Log form data
+                console.log("Shape Options Form Data:", formData);
+    
+                // Perform AJAX submission using Axios
+                axios.post("/submit", formData)
+                    .then(function(response) {
+                        // Handle successful submission
+                        console.log("Shape options submitted successfully");
+                        document.getElementById("settings").style.display = "none";
+                    })
+                    .catch(function(error) {
+                        // Handle error
+                        console.error("Error submitting shape options:", error);
+                    });
+            });
+        });
+    </script>
+    
 
     <script>
         function updateImage() {
@@ -37,5 +136,7 @@
         setInterval(updateImage, 700);
         updateImage();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 </body>
 </html>

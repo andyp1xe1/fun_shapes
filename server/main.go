@@ -4,18 +4,30 @@ import (
 	"fmt"
 	gen "fun_shapes/server/generator"
 	net "fun_shapes/server/network"
-	"github.com/fogleman/gg"
+	"os"
 	"path/filepath"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/fogleman/gg"
 )
 
 // TODO Opts chan. image recv post req. multiple alg instances
 func main() {
-	net.StartServer()
-	o := &gen.Opts
-	//o := <-gen.OptsCh
+	optCh := make(chan gen.Options)
+	net.StartServer(optCh)
+	//o := &gen.Opts
+	o := <-optCh
+	close(optCh)
+
+	defer func() {
+		//Remove the file after processing
+		err := os.Remove("./img_test/testfile.png")
+		if err != nil {
+			fmt.Println("Error removing file:", err)
+		}
+	}()
 
 	img, _ := gg.LoadImage(o.InPath)
 	c := gen.NewCanvas(img)
@@ -64,6 +76,7 @@ func main() {
 		processor(conf)
 	}
 	c.Dc.SavePNG(genOutPath(o.InPath))
+
 }
 
 func processor(conf procConf) {
@@ -85,7 +98,7 @@ func processor(conf procConf) {
 
 		bestShape := shapes[0]
 		bestShape.Draw(conf.Ctx)
-		println(bestShape.GetScore())
+		//println(bestShape.GetScore())
 		net.UpdateCurrentImg(conf.Ctx)
 
 	}

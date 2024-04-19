@@ -2,10 +2,11 @@ package generator
 
 import (
 	//"fmt"
-	"github.com/fogleman/gg"
 	"image"
 	"math"
 	"math/rand"
+
+	"github.com/fogleman/gg"
 )
 
 func old_fitness_monte(originalImg image.Image, ctx *gg.Context, numSamples int) float64 {

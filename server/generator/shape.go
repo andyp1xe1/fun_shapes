@@ -7,6 +7,15 @@ import (
 	"github.com/fogleman/gg"
 )
 
+type ShapeType string
+
+const (
+	RectType    ShapeType = "1"
+	TrigType    ShapeType = "2"
+	EllipseType ShapeType = "3"
+	AllType     ShapeType = "4"
+)
+
 type Shape interface {
 	Draw(dc *gg.Context)
 	//Mutate()
@@ -22,16 +31,16 @@ type Shape interface {
 //	C         *Canvas
 //}
 
-func NewShape(c *Canvas, ShapeType string) Shape {
+func NewShape(c *Canvas, ShapeType ShapeType) Shape {
 	var s Shape
 	switch ShapeType {
-	case "Triangle":
+	case TrigType:
 		s = NewTrig(c.Dx, c.Dy)
-	case "Rectangle":
+	case RectType:
 		s = NewRect(c.Dx, c.Dy)
-	case "Ellipse":
+	case EllipseType:
 		s = NewEllipse(c.Dx, c.Dy)
-	case "All":
+	case AllType:
 		vari := rand.Float64()
 		if vari <= 0.3 {
 			s = NewTrig(c.Dx, c.Dy)
