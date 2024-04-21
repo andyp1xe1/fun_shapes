@@ -17,6 +17,8 @@ import (
 	"github.com/fogleman/gg"
 )
 
+// go run main.go
+
 var imgChan = make(chan []byte, 10)
 
 func StartServer(optChan chan generator.Options) {
