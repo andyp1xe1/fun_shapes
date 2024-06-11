@@ -3,55 +3,143 @@ package main
 import (
 	"fmt"
 	gen "fun_shapes/server/generator"
-	net "fun_shapes/server/network"
-	"os"
+	"net/http"
 	"path/filepath"
-	"sort"
+	"strconv"
 	"sync"
 	"time"
-
-	"github.com/fogleman/gg"
 )
 
-// TODO Opts chan. image recv post req. multiple alg instances
-func main() {
-	optCh := make(chan gen.Options)
-	net.StartServer(optCh)
-	//o := &gen.Opts
-	o := <-optCh
-	close(optCh)
+type FrameSelector interface {
+	FrameChan(addr string) <-chan []byte
+	Register(addr string, frameChan chan []byte)
+}
 
-	defer func() {
-		//Remove the file after processing
-		err := os.Remove("./img_test/testfile.png")
+type FrameStore struct {
+	mutex sync.Mutex
+	chans map[string](chan []byte)
+}
+
+func (m *FrameStore) FrameChan(addr string) <-chan []byte {
+	m.mutex.Lock()
+	ch := m.chans[addr]
+	m.mutex.Unlock()
+	return ch
+}
+
+func (m *FrameStore) Register(addr string, frameChan chan []byte) {
+	m.mutex.Lock()
+	m.chans[addr] = frameChan
+	m.mutex.Unlock()
+}
+
+func frameHandler(selector FrameSelector) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case frame := <-selector.FrameChan(r.RemoteAddr):
+			w.Header().Set("Content-Type", "image/png")
+			w.Write(frame)
+		default:
+			http.Error(w, "No image available", http.StatusNotFound)
+		}
+	}
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "index.html")
+}
+
+func submitHandler(optsChan chan gen.Options) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		shapeType := r.FormValue("shape")
+		strSolidnr := r.FormValue("solidshapes")
+		strOpaquenr := r.FormValue("opaqueshapes")
+		strMontenr := r.FormValue("monteshapes")
+		strMontedensity := r.FormValue("montedensity")
+
+		solidnr, _ := strconv.Atoi(strSolidnr)
+		opaquenr, _ := strconv.Atoi(strOpaquenr)
+		montenr, _ := strconv.Atoi(strMontenr)
+		montedensity, _ := strconv.ParseFloat(strMontedensity, 64)
+
+		fmt.Printf("Received shape: %s", shapeType)
+		fmt.Printf("Values: %d %d %d %f", solidnr, opaquenr, montenr, montedensity)
+
+		image, _, err := r.FormFile("image")
 		if err != nil {
-			fmt.Println("Error removing file:", err)
+			http.Error(w, "Error retrieving file", http.StatusBadRequest)
+			return
+		}
+
+		optsChan <- gen.Options{
+			Id:              r.RemoteAddr,
+			FrameCh:         make(chan []byte, 24),
+			PopulationSize:  150,
+			NumSolidShapes:  solidnr,
+			NumOpaqueShapes: opaquenr,
+			NumMonteShapes:  montenr,
+			MonteDensity:    montedensity,
+			ShapeType:       gen.ShapeType(shapeType),
+			InImage:         image,
+		}
+	}
+}
+
+// TODO make canvas implement `save` method
+func main() {
+	frames := &FrameStore{}
+	optsChan := make(chan gen.Options, 100)
+
+	http.HandleFunc("/", rootHandler)
+	http.HandleFunc("/submit", submitHandler(optsChan))
+	http.HandleFunc("/frame", frameHandler(frames))
+
+	go func() {
+		fmt.Println("Server started at http://localhost:8080")
+		err := http.ListenAndServe(":8080", nil)
+		if err != nil {
+			fmt.Println("Error starting server:", err)
 		}
 	}()
 
-	img, _ := gg.LoadImage(o.InPath)
-	c := gen.NewCanvas(img)
+	wg := sync.WaitGroup{}
+	for opts := range optsChan {
+		go func() {
+			wg.Add(1)
+			handleOpts(&opts)
+			//c.SavePNG() //TODO
+			wg.Done()
+		}()
+		frames.Register(opts.Id, opts.FrameCh)
+	}
+	wg.Wait()
+	close(optsChan)
+}
 
-	numMonteSamples := int(float64(c.Dx*c.Dy) * o.MonteDensity)
+func handleOpts(o *gen.Options) {
+	c := gen.NewCanvas(o.InImage)
 
 	// Random col. example
 	// i := rand.Intn(len(c.Palette))
 	// s.Color = c.Palette[i]
-	procSteps := []procConf{
+	procSteps := []gen.ProcConf{
 		{
 			NumShapes:      o.NumMonteShapes,
 			PopulationSize: o.PopulationSize,
-			Ctx:            c.Dc,
 			Fn: func() gen.Shape {
 				shape := gen.NewShape(c, o.ShapeType)
 				shape.SetColFrom(c)
-				c.EvalScoreMonte(shape, numMonteSamples)
+				c.EvalScoreMonte(shape, int(float64(c.Dx*c.Dy)*o.MonteDensity))
 				return shape
 			},
 		}, {
 			NumShapes:      o.NumSolidShapes,
 			PopulationSize: o.PopulationSize,
-			Ctx:            c.Dc,
 			Fn: func() gen.Shape {
 				shape := gen.NewShape(c, o.ShapeType)
 				shape.SetColFrom(c)
@@ -61,7 +149,6 @@ func main() {
 		}, {
 			NumShapes:      o.NumOpaqueShapes,
 			PopulationSize: o.PopulationSize,
-			Ctx:            c.Dc,
 			Fn: func() gen.Shape {
 				shape := gen.NewShape(c, o.ShapeType)
 				col := shape.SetColFrom(c)
@@ -71,45 +158,9 @@ func main() {
 			},
 		},
 	}
-
 	for _, conf := range procSteps {
-		processor(conf)
+		c.Process(conf)
 	}
-	c.Dc.SavePNG(genOutPath(o.InPath))
-
-}
-
-func processor(conf procConf) {
-	for i := 0; i < conf.NumShapes; i++ {
-		wg := sync.WaitGroup{}
-		shapes := make([]gen.Shape, conf.PopulationSize)
-		for j := 0; j < conf.PopulationSize; j++ {
-			wg.Add(1)
-			go func(idx int) {
-				defer wg.Done()
-				shapes[idx] = conf.Fn()
-			}(j)
-		}
-		wg.Wait()
-
-		sort.Slice(shapes, func(i, j int) bool {
-			return shapes[i].GetScore() < shapes[j].GetScore()
-		})
-
-		bestShape := shapes[0]
-		bestShape.Draw(conf.Ctx)
-		//println(bestShape.GetScore())
-		net.UpdateCurrentImg(conf.Ctx)
-
-	}
-}
-
-type ProcFunc func() gen.Shape
-type procConf struct {
-	NumShapes      int
-	PopulationSize int
-	Fn             ProcFunc
-	Ctx            *gg.Context
 }
 
 func genOutPath(originalPath string) string {

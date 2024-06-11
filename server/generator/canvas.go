@@ -1,11 +1,16 @@
 package generator
 
 import (
-	"github.com/fogleman/gg"
-	"github.com/nfnt/resize"
+	"bytes"
+	"fmt"
 	"image"
 	"image/color"
-	//"sync"
+	"mime/multipart"
+	"sort"
+	"sync"
+
+	"github.com/fogleman/gg"
+	"github.com/nfnt/resize"
 )
 
 type Canvas struct {
@@ -16,7 +21,17 @@ type Canvas struct {
 	//mu      sync.Mutex
 }
 
-func NewCanvas(img image.Image) *Canvas {
+type ProcFunc func() Shape
+type ProcConf struct {
+	NumShapes      int
+	PopulationSize int
+	Fn             ProcFunc
+	Ctx            *gg.Context
+	frameChan      chan []byte
+}
+
+func NewCanvas(file multipart.File) *Canvas {
+	img, _, _ := image.Decode(file)
 	dx := img.Bounds().Dx() / 4
 	dy := img.Bounds().Dy() / 4
 	img = resize.Thumbnail(uint(dx), uint(dy), img, resize.Lanczos2)
@@ -33,6 +48,9 @@ func NewCanvas(img image.Image) *Canvas {
 		Img:     img,
 	}
 }
+func (c *Canvas) Draw(s Shape) {
+	s.Draw(c.Dc)
+}
 
 func (c *Canvas) EvalScore(s Shape) float64 {
 	ctx := gg.NewContext(c.Dc.Width(), c.Dc.Height())
@@ -42,6 +60,7 @@ func (c *Canvas) EvalScore(s Shape) float64 {
 	s.SetScore(score)
 	return s.GetScore()
 }
+
 func (c *Canvas) EvalScoreMonte(s Shape, monteSamples int) float64 {
 	ctx := gg.NewContext(c.Dc.Width(), c.Dc.Height())
 	ctx.DrawImage(c.Dc.Image(), 0, 0)
@@ -54,4 +73,43 @@ func (c *Canvas) EvalScoreMonte(s Shape, monteSamples int) float64 {
 	}
 	s.SetScore(score)
 	return s.GetScore()
+}
+
+func (c *Canvas) Process(conf ProcConf) {
+	for i := 0; i < conf.NumShapes; i++ {
+		wg := sync.WaitGroup{}
+		shapes := make([]Shape, conf.PopulationSize)
+		for j := 0; j < conf.PopulationSize; j++ {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				shapes[idx] = conf.Fn()
+			}(j)
+		}
+		wg.Wait()
+
+		sort.Slice(shapes, func(i, j int) bool {
+			return shapes[i].GetScore() < shapes[j].GetScore()
+		})
+
+		bestShape := shapes[0]
+		//println(bestShape.GetScore())
+		c.Draw(bestShape)
+
+		select {
+		case conf.frameChan <- c.toBytes():
+		default:
+			//fmt.Println("Skipping image update; channel is full")
+		}
+	}
+}
+
+func (c *Canvas) toBytes() []byte {
+	var buf bytes.Buffer
+	err := c.Dc.EncodePNG(&buf)
+	if err != nil {
+		fmt.Println("Error encoding PNG:", err)
+		return nil
+	}
+	return buf.Bytes()
 }
