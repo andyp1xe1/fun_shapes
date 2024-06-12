@@ -1,235 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Jersey+15+Charted&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <title>Image Creation Viewer</title>
-    <style>
-        h3 {
-            font-family: "Work Sans", sans-serif;
-            font-size: 36px;
-            font-weight: 800;
-            font-style: normal;
-            display: flex;
-            justify-content: center;
-            margin: 0 20px;
-        }
-        .upload-div, .filters-div, .image-div {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        body {
-            height: 100%;
-            background-color: #293241;
-            font-family: sans-serif;
-            font-size: 14px;
-        }
-        .window-wrapper {
-            background-color: #E3E2DF;
-            min-height: 500px;
-            box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
-            padding: 30px 40px;
-            border-radius: 20px;
-            width: 20%;
-            margin: auto;
-            padding-top: 0;
-            margin-top: 100px;
-        }
-        #image {
-            width: 90%;
-            margin-top: 20px;
-            margin: auto;
-        }
-        #uploadBtn, input::file-selector-button, #submitBtn {
-            background-color: #293241;
-            border-radius: 4px;
-            border-style: none;
-            box-sizing: border-box;
-            color: #fff;
-            cursor: pointer;
-            display: inline-block;
-            line-height: 1.5;
-            margin: 0;
-            outline: none;
-            overflow: hidden;
-            padding:2px 5px;
-            position: relative;
-            text-align: center;
-            text-transform: none;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-            :hover,:focus {
-                opacity: .75;
-            }
-        }
-        input::file-selector-button {
-            margin-right: 5px;
-        }
-        #submitBtn {
-            display: block;
-            margin: 20px auto;
-            padding-left: 15px;
-            padding-right: 15px;
-        }
-        #radioDiv {
-            margin-top: 10px;
-            margin-bottom: 0;
-        }
-        #solidshapes, #opaqueshapes, #monteshapes, #montedensity, #rectangle, #triangle, #ellipse, #all {
-            accent-color: #3d5a80;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Jersey+15+Charted&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet">
+  <title>Image Creation Viewer</title>
+  <style>
+    h3 {
+      font-family: "Work Sans", sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      font-style: normal;
+      display: flex;
+      justify-content: center;
+      margin: 0 20px;
+    }
 
-        @media only screen and (max-width: 768px) {
-            .window-wrapper {
-                width: 80%; 
-            }
-            h3 {
-                font-size: 24px; 
-            }
-        }
-    </style>
+    .upload-div,
+    .filters-div,
+    .image-div {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body {
+      height: 100%;
+      background-color: #293241;
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+
+    .window-wrapper {
+      background-color: #E3E2DF;
+      min-height: 500px;
+      box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+      padding: 30px 40px;
+      border-radius: 20px;
+      width: 20%;
+      margin: auto;
+      padding-top: 0;
+      margin-top: 100px;
+    }
+
+    #image {
+      width: 90%;
+      margin-top: 20px;
+      margin: auto;
+    }
+
+    #uploadBtn,
+    input::file-selector-button,
+    #submitBtn {
+      background-color: #293241;
+      border-radius: 4px;
+      border-style: none;
+      box-sizing: border-box;
+      color: #fff;
+      cursor: pointer;
+      display: inline-block;
+      line-height: 1.5;
+      margin: 0;
+      outline: none;
+      overflow: hidden;
+      padding: 2px 5px;
+      position: relative;
+      text-align: center;
+      text-transform: none;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+
+      :hover,
+      :focus {
+        opacity: .75;
+      }
+    }
+
+    input::file-selector-button {
+      margin-right: 5px;
+    }
+
+    #submitBtn {
+      display: block;
+      margin: 20px auto;
+      padding-left: 15px;
+      padding-right: 15px;
+    }
+
+    #radioDiv {
+      margin-top: 10px;
+      margin-bottom: 0;
+    }
+
+    #solidshapes,
+    #opaqueshapes,
+    #monteshapes,
+    #montedensity,
+    #rectangle,
+    #triangle,
+    #ellipse,
+    #all {
+      accent-color: #3d5a80;
+    }
+
+    @media only screen and (max-width: 768px) {
+      .window-wrapper {
+        width: 80%;
+      }
+
+      h3 {
+        font-size: 24px;
+      }
+    }
+  </style>
 </head>
-<body>
-    
-    <div class="window-wrapper">
-        <div>
-            <h3>
-                <p style="color: #293241; padding: 10px 10px;"> Live </p>
-                <p style="color: #ee6c4d; padding: 10px 10px;"> Shapes </p>
-            </h3>
-            <form class="upload-div" id="imgupload" action="/upload" method="post" enctype="multipart/form-data">
-                <input type="file" name="image" accept="image/*">
-                <input id="uploadBtn" type="submit" value="Upload">
-            </form>
-        </div>
-    
-        <div class="filters-div">
-            <form id="settings" action="/submit" method="post" target="/">
-                <div id="radioDiv">
-                    <input type="radio" id="rectangle" name="shape" value="1">
-                    <label for="rectangle">Rectangle</label>
-            
-                    <input type="radio" id="triangle" name="shape" value="2">
-                    <label for="triangle">Triangle</label>
-            
-                    <input type="radio" id="ellipse" name="shape" value="3">
-                    <label for="ellipse">Ellipse</label>
-            
-                    <input type="radio" id="all" name="shape" value="4">
-                    <label for="all">All</label>
-                </div>
-                <br><br>
-        
-                Solid Shapes: <input type="range" id="solidshapes" name="solidshapes" min="1" max="1000" value="500">
-                <br>
-                Opaque Shapes: <input type="range" id="opaqueshapes" name="opaqueshapes" min="1" max="1000" value="30">
-                <br>
-                Monte Shapes: <input type="range" id="monteshapes" name="monteshapes" min="1" max="1000" value="25">
-                <br>
-                Monte Density: <input type="range" id="montedensity" name="montedensity" min="0" max="1" step="0.01" value="0.4">
-                <br>
-                <!-- Submit button -->
-                <input id="submitBtn" type="submit" value="Submit">
-            </form>
-        </div>
 
-        <div class="image-div">
-            <img id="image" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqkEW7XrOznDGKg8Nflt3p3h70hR-dCOO3qpJdjrfgXA&s" alt="Current Image">
-        </div>
+<body>
+
+  <div class="window-wrapper">
+    <div>
+      <h3>
+        <p style="color: #293241; padding: 10px 10px;"> Live </p>
+        <p style="color: #ee6c4d; padding: 10px 10px;"> Shapes </p>
+      </h3>
     </div>
 
-    
+    <div class="filters-div">
+      <form id="options" action="/submit" method="post" target="/" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*">
+        <div id="radioDiv">
+          <input type="radio" id="rectangle" name="shape" value="1">
+          <label for="rectangle">Rectangle</label>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Find the form element for uploading image
-            var imgUploadForm = document.querySelector("#imgupload");
-    
-            // Add an event listener for image upload form submission
-            imgUploadForm.addEventListener("submit", function(event) {
-                event.preventDefault(); // Prevent the default form submission
-    
-                // Collect form data
-                var formData = new FormData(imgUploadForm);
-    
-                // Log form data
-                console.log("Image Upload Form Data:", formData);
-    
-                // Perform AJAX submission using Axios
-                axios.post("/upload", formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data"
-                    }
-                })
-                .then(function(response) {
-                    // Handle successful image upload
-                    console.log("Image uploaded successfully");
-                    // Optionally, update the displayed image after successful upload
-                    updateImage();
-                    document.getElementById("imgupload").style.display = "none";
-                })
-                .catch(function(error) {
-                    // Handle error
-                    console.error("Error uploading image:", error);
-                });
-            });
-    
-            // Find the form element for submitting shape options
-            var settingsForm = document.querySelector("#settings");
-    
-            // Add an event listener for shape options form submission
-            settingsForm.addEventListener("submit", function(event) {
-                event.preventDefault(); // Prevent the default form submission
-    
-                // Collect form data
-                var formData = new FormData(settingsForm);
-    
-                // Log form data
-                console.log("Shape Options Form Data:", formData);
-    
-                // Perform AJAX submission using Axios
-                axios.post("/submit", formData)
-                    .then(function(response) {
-                        // Handle successful submission
-                        console.log("Shape options submitted successfully");
-                        document.getElementById("settings").style.display = "none";
-                    })
-                    .catch(function(error) {
-                        // Handle error
-                        console.error("Error submitting shape options:", error);
-                    });
-            });
+          <input type="radio" id="triangle" name="shape" value="2">
+          <label for="triangle">Triangle</label>
+
+          <input type="radio" id="ellipse" name="shape" value="3">
+          <label for="ellipse">Ellipse</label>
+
+          <input type="radio" id="all" name="shape" value="4">
+          <label for="all">All</label>
+        </div>
+        <br><br>
+
+        Solid Shapes: <input type="range" id="solidshapes" name="solidshapes" min="1" max="1000" value="500">
+        <br>
+        Opaque Shapes: <input type="range" id="opaqueshapes" name="opaqueshapes" min="1" max="1000" value="30">
+        <br>
+        Monte Shapes: <input type="range" id="monteshapes" name="monteshapes" min="1" max="1000" value="25">
+        <br>
+        Monte Density: <input type="range" id="montedensity" name="montedensity" min="0" max="1" step="0.01"
+          value="0.4">
+        <br>
+        <!-- Submit button -->
+        <input id="submitBtn" type="submit" value="Submit">
+      </form>
+    </div>
+
+    <div class="image-div">
+      <img id="image"
+        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqkEW7XrOznDGKg8Nflt3p3h70hR-dCOO3qpJdjrfgXA&s"
+        alt="Current Image">
+    </div>
+  </div>
+
+
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+      var optsForm = document.querySelector("#options");
+
+      optsForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        var formData = new FormData(optsForm);
+        console.log("Shape Options Form Data:", formData);
+
+        axios.post("/submit", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        })
+          .then(function (response) {
+            document.getElementById("options").style.display = "none";
+          })
+          .catch(function (error) {
+            console.error("Error submitting shape options:", error);
+          });
+      });
+    })
+  </script>
+
+
+  <script>
+    function updateImage() {
+      fetch('/frame')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const imageUrl = URL.createObjectURL(blob);
+          document.getElementById('image').src = imageUrl;
+        })
+        .catch(error => {
+          console.error('Error fetching image:', error);
         });
-    </script>
-    
+    }
 
-    <script>
-        function updateImage() {
-            fetch('http://localhost:8080/frame')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const imageUrl = URL.createObjectURL(blob);
-                    document.getElementById('image').src = imageUrl;
-                })
-                .catch(error => {
-                    console.error('Error fetching image:', error);
-                });
-        }
-
-        setInterval(updateImage, 700);
-        updateImage();
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    setInterval(updateImage, 700);
+    updateImage();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 </body>
+
 </html>

@@ -20,10 +20,18 @@ type FrameStore struct {
 	chans map[string](chan []byte)
 }
 
+func newFrameStore() *FrameStore {
+	return &FrameStore{
+		mutex: sync.Mutex{},
+		chans: make(map[string](chan []byte)),
+	}
+}
+
 func (m *FrameStore) FrameChan(addr string) <-chan []byte {
 	m.mutex.Lock()
 	ch := m.chans[addr]
 	m.mutex.Unlock()
+	fmt.Printf("querying user %s\n", addr)
 	return ch
 }
 
@@ -31,6 +39,7 @@ func (m *FrameStore) Register(addr string, frameChan chan []byte) {
 	m.mutex.Lock()
 	m.chans[addr] = frameChan
 	m.mutex.Unlock()
+	fmt.Printf("registered user %s\n", addr)
 }
 
 func frameHandler(selector FrameSelector) http.HandlerFunc {
@@ -67,18 +76,18 @@ func submitHandler(optsChan chan gen.Options) http.HandlerFunc {
 		montenr, _ := strconv.Atoi(strMontenr)
 		montedensity, _ := strconv.ParseFloat(strMontedensity, 64)
 
-		fmt.Printf("Received shape: %s", shapeType)
-		fmt.Printf("Values: %d %d %d %f", solidnr, opaquenr, montenr, montedensity)
-
 		image, _, err := r.FormFile("image")
 		if err != nil {
 			http.Error(w, "Error retrieving file", http.StatusBadRequest)
 			return
 		}
 
+		fmt.Printf("Received shape: %s\n", shapeType)
+		fmt.Printf("Values: %d %d %d %f\n", solidnr, opaquenr, montenr, montedensity)
+
 		optsChan <- gen.Options{
 			Id:              r.RemoteAddr,
-			FrameCh:         make(chan []byte, 24),
+			FrameCh:         make(chan []byte, 64),
 			PopulationSize:  150,
 			NumSolidShapes:  solidnr,
 			NumOpaqueShapes: opaquenr,
@@ -92,7 +101,7 @@ func submitHandler(optsChan chan gen.Options) http.HandlerFunc {
 
 // TODO make canvas implement `save` method
 func main() {
-	frames := &FrameStore{}
+	frames := newFrameStore()
 	optsChan := make(chan gen.Options, 100)
 
 	http.HandleFunc("/", rootHandler)
@@ -159,7 +168,7 @@ func handleOpts(o *gen.Options) {
 		},
 	}
 	for _, conf := range procSteps {
-		c.Process(conf)
+		c.Process(conf, o.FrameCh)
 	}
 }
 

@@ -6,8 +6,10 @@ import (
 	"image"
 	"image/color"
 	"mime/multipart"
+	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/fogleman/gg"
 	"github.com/nfnt/resize"
@@ -27,13 +29,13 @@ type ProcConf struct {
 	PopulationSize int
 	Fn             ProcFunc
 	Ctx            *gg.Context
-	frameChan      chan []byte
 }
 
 func NewCanvas(file multipart.File) *Canvas {
 	img, _, _ := image.Decode(file)
-	dx := img.Bounds().Dx() / 4
-	dy := img.Bounds().Dy() / 4
+	ratio := float64(img.Bounds().Dx()) / float64(img.Bounds().Dy())
+	dx := int(300 * ratio)
+	dy := 300
 	img = resize.Thumbnail(uint(dx), uint(dy), img, resize.Lanczos2)
 	p := quantizeImage(img, 256)
 	dc := gg.NewContext(dx, dy)
@@ -75,7 +77,7 @@ func (c *Canvas) EvalScoreMonte(s Shape, monteSamples int) float64 {
 	return s.GetScore()
 }
 
-func (c *Canvas) Process(conf ProcConf) {
+func (c *Canvas) Process(conf ProcConf, frameCh chan []byte) {
 	for i := 0; i < conf.NumShapes; i++ {
 		wg := sync.WaitGroup{}
 		shapes := make([]Shape, conf.PopulationSize)
@@ -95,16 +97,15 @@ func (c *Canvas) Process(conf ProcConf) {
 		bestShape := shapes[0]
 		//println(bestShape.GetScore())
 		c.Draw(bestShape)
-
 		select {
-		case conf.frameChan <- c.toBytes():
+		case frameCh <- c.ToBytes():
 		default:
-			//fmt.Println("Skipping image update; channel is full")
+			fmt.Println("Skipping image update; channel is full")
 		}
 	}
 }
 
-func (c *Canvas) toBytes() []byte {
+func (c *Canvas) ToBytes() []byte {
 	var buf bytes.Buffer
 	err := c.Dc.EncodePNG(&buf)
 	if err != nil {
@@ -112,4 +113,18 @@ func (c *Canvas) toBytes() []byte {
 		return nil
 	}
 	return buf.Bytes()
+}
+
+func (c *Canvas) Save() {
+	//TODO
+}
+
+func genOutPath(originalPath string) string {
+	filename := filepath.Base(originalPath)
+	filenameWithoutExt := filename[:len(filename)-len(filepath.Ext(filename))]
+	timestamp := time.Now().Format("20060102_150405")
+	newFilename := fmt.Sprintf("%s_%s.png", filenameWithoutExt, timestamp)
+	out := filepath.Join("./img_res", newFilename)
+	println("Saving to", out)
+	return out
 }
