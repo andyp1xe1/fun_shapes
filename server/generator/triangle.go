@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"math/rand"
@@ -84,4 +85,16 @@ func (t *Triangle) SetCol(c color.Color) {
 
 func (t *Triangle) GetCol() color.Color {
 	return t.Color
+}
+
+func (t *Triangle) ToSVG() string {
+	return fmt.Sprintf(
+		`<polygon points="%f,%f %f,%f %f,%f" fill="%s" />`,
+		t.X1, t.Y1, t.X2, t.Y2, t.X3, t.Y3, colorToHex(t.Color),
+	)
+}
+
+func colorToHex(c color.Color) string {
+	r, g, b, a := c.RGBA()
+	return fmt.Sprintf("#%02x%02x%02x%02x", r>>8, g>>8, b>>8, a>>8)
 }

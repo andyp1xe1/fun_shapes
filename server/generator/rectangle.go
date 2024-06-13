@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"math/rand"
@@ -68,4 +69,11 @@ func (r *Rectangle) SetCol(c color.Color) {
 
 func (r *Rectangle) GetCol() color.Color {
 	return r.Color
+}
+
+func (r *Rectangle) ToSVG() string {
+	return fmt.Sprintf(
+		`<rect x="%f" y="%f" width="%f" height="%f" transform="rotate(%f %f %f)" fill="%s" />`,
+		r.X-r.W/2, r.Y-r.H/2, r.W, r.H, r.Th*180/math.Pi, r.X, r.Y, colorToHex(r.Color),
+	)
 }

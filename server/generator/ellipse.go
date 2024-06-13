@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"math/rand"
@@ -71,4 +72,11 @@ func (r *Ellipse) SetCol(c color.Color) {
 
 func (r *Ellipse) GetCol() color.Color {
 	return r.Color
+}
+
+func (e *Ellipse) ToSVG() string {
+	return fmt.Sprintf(
+		`<ellipse cx="%f" cy="%f" rx="%f" ry="%f" transform="rotate(%f %f %f)" fill="%s" />`,
+		e.X, e.Y, e.Rx, e.Ry, e.Th*180/math.Pi, e.X, e.Y, colorToHex(e.Color),
+	)
 }

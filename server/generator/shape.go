@@ -24,6 +24,7 @@ type Shape interface {
 	SetCol(c color.Color)
 	GetCol() color.Color
 	SetColFrom(c *Canvas) color.Color
+	ToSVG() string
 }
 
 //type ShapeGenConf struct {

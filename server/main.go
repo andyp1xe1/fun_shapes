@@ -169,6 +169,10 @@ func handleOpts(o *gen.Options) {
 	}
 	for _, conf := range procSteps {
 		c.Process(conf, o.FrameCh)
+		err := c.SaveSVGsToFile("output.txt")
+		if err != nil {
+			fmt.Println("Error saving SVG data:", err)
+		}
 	}
 }
 

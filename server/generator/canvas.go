@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -21,6 +22,7 @@ type Canvas struct {
 	Dc      *gg.Context
 	Img     image.Image
 	//mu      sync.Mutex
+	SVGs []string
 }
 
 type ProcFunc func() Shape
@@ -48,6 +50,7 @@ func NewCanvas(file multipart.File) *Canvas {
 		Palette: p,
 		Dc:      dc,
 		Img:     img,
+		SVGs:    []string{},
 	}
 }
 func (c *Canvas) Draw(s Shape) {
@@ -97,11 +100,19 @@ func (c *Canvas) Process(conf ProcConf, frameCh chan []byte) {
 		bestShape := shapes[0]
 		//println(bestShape.GetScore())
 		c.Draw(bestShape)
+
+		//if drawable, ok := bestShape.(SVGDrawable); ok {
+		//	svg := drawable.ToSVG()
+		//	c.SVGs = append(c.SVGs, svg)
+
+		svg := bestShape.ToSVG()
+
 		select {
 		case frameCh <- c.ToBytes():
 		default:
 			fmt.Println("Skipping image update; channel is full")
 		}
+
 	}
 }
 
@@ -127,4 +138,26 @@ func genOutPath(originalPath string) string {
 	out := filepath.Join("./img_res", newFilename)
 	println("Saving to", out)
 	return out
+}
+
+func (c *Canvas) SaveSVGsToFile(filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, svg := range c.SVGs {
+		//fmt.Printf("SVG :\n%s\n\n", svg)
+		_, err := file.WriteString(svg + "\n")
+		if err != nil {
+			return err
+		}
+	}
+	//_, err = file.Write(c.ToBytes())
+	//if err != nil {
+	//	return err
+	//}
+	fmt.Println("SVG data saved to", "./svg")
+	return nil
 }
