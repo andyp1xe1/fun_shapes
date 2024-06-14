@@ -80,7 +80,7 @@ func (c *Canvas) EvalScoreMonte(s Shape, monteSamples int) float64 {
 	return s.GetScore()
 }
 
-func (c *Canvas) Process(conf ProcConf, frameCh chan []byte) {
+func (c *Canvas) Process(conf ProcConf, ch FrameChan) {
 	for i := 0; i < conf.NumShapes; i++ {
 		wg := sync.WaitGroup{}
 		shapes := make([]Shape, conf.PopulationSize)
@@ -98,20 +98,17 @@ func (c *Canvas) Process(conf ProcConf, frameCh chan []byte) {
 		})
 
 		bestShape := shapes[0]
-		//println(bestShape.GetScore())
 		c.Draw(bestShape)
-
-		//if drawable, ok := bestShape.(SVGDrawable); ok {
-		//	svg := drawable.ToSVG()
-		//	c.SVGs = append(c.SVGs, svg)
-
 		svg := bestShape.ToSVG()
+		c.SVGs = append(c.SVGs, svg)
 
-		select {
-		case frameCh <- c.ToBytes():
-		default:
-			fmt.Println("Skipping image update; channel is full")
-		}
+		ch <- svg
+
+		//select {
+		//case ch <- svg:
+		//default:
+		//	fmt.Println("Skipping image update; channel is full")
+		//}
 
 	}
 }

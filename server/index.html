@@ -53,6 +53,7 @@
     .window-wrapper {
       background-color: #E3E2DF;
       min-height: 500px;
+      min-width: 500px;
       box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
       padding: 30px 40px;
       border-radius: 20px;
@@ -127,6 +128,7 @@
     @media only screen and (max-width: 768px) {
       .window-wrapper {
         width: 80%;
+        min-width: 80%;
       }
 
       h3 {
@@ -155,7 +157,7 @@
 
     <div class="filters-div" style="height: 100%;">
       <form id="options" action="/submit" method="post" target="/" enctype="multipart/form-data" style="height: 100%;">
-       
+
         <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
           <input type="file" name="image" accept="image/*">
         </div>
@@ -181,8 +183,7 @@
         <br>
         Monte Shapes <input type="range" id="monteshapes" name="monteshapes" min="1" max="1000" value="25">
         <br>
-        Monte Density <input type="range" id="montedensity" name="montedensity" min="0" max="1" step="0.01"
-          value="0.4">
+        Monte Density <input type="range" id="montedensity" name="montedensity" min="0" max="1" step="0.01" value="0.4">
         <br>
         <div class="error" id="errorMsg"></div>
         <!-- Submit button -->
@@ -191,77 +192,95 @@
     </div>
 
     <div class="image-div">
-      <img id="image"
+      <svg id="image" align="center"
         src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqkEW7XrOznDGKg8Nflt3p3h70hR-dCOO3qpJdjrfgXA&s"
         alt="Current Image">
+      </svg>
     </div>
-  </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    <script>
+      var uuid = ""
+      const SVG = document.querySelector("#image")
 
-      var optsForm = document.querySelector("#options");
-      var errorMsg = document.getElementById("errorMsg");
-
-      optsForm.addEventListener("submit", function (event) {
-        event.preventDefault();
-
-        var formData = new FormData(optsForm);
-        var shapeSelected = formData.get("shape");
-        var fileSelected = formData.get("image");
-
-        if (!shapeSelected) {
-          errorMsg.textContent = "Please select a shape option.";
-          return;
-        }
-
-        if (!fileSelected || fileSelected.size === 0) {
-          errorMsg.textContent = "Please choose an image file.";
-          return;
-        }
-
-        console.log("Shape Options Form Data:", formData);
-
-        axios.post("/submit", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        })
-          .then(function (response) {
-            document.getElementById("options").style.display = "none";
-            const imageUrl = URL.createObjectURL(fileSelected);
-            document.getElementById('background-blur').style.backgroundImage = `url(${imageUrl})`;
-          })
-          .catch(function (error) {
-            console.error("Error submitting shape options:", error);
-          });
-      });
-    })
-  </script>
-
-
-  <script>
-    function updateImage() {
-      fetch('/frame')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.blob();
-        })
-        .then(blob => {
-          const imageUrl = URL.createObjectURL(blob);
-          document.getElementById('image').src = imageUrl;
-        })
-        .catch(error => {
-          console.error('Error fetching image:', error);
+      const startWs = (uuid) => {
+        const socket = new WebSocket('/ws');
+        socket.addEventListener('open', function (event) {
+          console.log('WebSocket connection opened:', event);
+          socket.send(uuid)
         });
-    }
 
-    setInterval(updateImage, 700);
-    updateImage();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        socket.addEventListener('message', function (event) {
+          console.log('Shape from server:', event.data);
+          SVG.insertAdjacentHTML('beforeend', event.data + '\n')
+        });
+
+        socket.addEventListener('close', function (event) {
+          console.log('WebSocket connection closed:', event);
+        });
+
+        socket.addEventListener('error', function (event) {
+          console.error('WebSocket error:', event);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+
+        var optsForm = document.querySelector("#options");
+        var errorMsg = document.getElementById("errorMsg");
+
+        optsForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          var formData = new FormData(optsForm);
+          var shapeSelected = formData.get("shape");
+          var fileSelected = formData.get("image");
+
+          if (!shapeSelected) {
+            errorMsg.textContent = "Please select a shape option.";
+            return;
+          }
+
+          if (!fileSelected || fileSelected.size === 0) {
+            errorMsg.textContent = "Please choose an image file.";
+            return;
+          }
+
+          console.log(fileSelected)
+
+          formData.set("uuid", uuid)
+
+          console.log("Shape Options Form Data:", formData);
+
+          axios.post("/submit", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            }
+          })
+            .then(function (response) {
+              document.getElementById("options").style.display = "none";
+
+              const imageUrl = URL.createObjectURL(fileSelected);
+              document.getElementById('background-blur').style.backgroundImage = `url(${imageUrl})`;
+
+              const img = new Image();
+              img.src = imageUrl;
+              img.onload = () => {
+                const ratio = img.naturalWidth / img.naturalHeight
+                SVG.style["aspect-ratio"] = ratio
+                SVG.style["width"] = "100%"
+              }
+
+              uuid = response.data
+              startWs(uuid)
+            })
+            .catch(function (error) {
+              console.error("Error submitting shape options:", error);
+            });
+        });
+      })
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 </body>
 

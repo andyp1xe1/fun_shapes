@@ -4,10 +4,22 @@ import (
 	"mime/multipart"
 )
 
+type FrameChan chan string
+
+func NewFrameChan() FrameChan {
+	return make(chan string, 128)
+}
+
+type FrameSelector interface {
+	selectCh(id string) FrameChan
+	registerCh(id string, frameChan FrameChan)
+	FrameChan(id string) FrameChan
+}
+
 type Options struct {
-	Id              string
+	//Id              string
 	InImage         multipart.File
-	FrameCh         chan []byte
+	FrameCh         FrameChan
 	NumSolidShapes  int
 	NumOpaqueShapes int
 	NumMonteShapes  int
@@ -16,13 +28,3 @@ type Options struct {
 	ShapeType       ShapeType
 	//InPath          string
 }
-
-//var Opts = Options{
-//	NumSolidShapes:  200, // max 500
-//	NumOpaqueShapes: 30,  // max 100
-//	NumMonteShapes:  80,  // max 50
-//	MonteDensity:    0.4, //0 - 1
-//	PopulationSize:  150,
-//
-//	ShapeType: "4",
-//}

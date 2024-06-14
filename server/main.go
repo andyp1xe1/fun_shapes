@@ -1,56 +1,72 @@
 package main
 
 import (
-	"fmt"
 	gen "fun_shapes/server/generator"
+
+	"fmt"
+	"github.com/google/uuid"
+	"golang.org/x/net/websocket"
+	"io"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"sync"
-	"time"
 )
 
-type FrameSelector interface {
-	FrameChan(addr string) <-chan []byte
-	Register(addr string, frameChan chan []byte)
-}
+// type FrameChan chan []byte
 
-type FrameStore struct {
+type Server struct {
 	mutex sync.Mutex
-	chans map[string](chan []byte)
+	wg    sync.WaitGroup
+	chans map[string]gen.FrameChan
 }
 
-func newFrameStore() *FrameStore {
-	return &FrameStore{
+func newServer() *Server {
+	return &Server{
 		mutex: sync.Mutex{},
-		chans: make(map[string](chan []byte)),
+		wg:    sync.WaitGroup{},
+		chans: make(map[string]gen.FrameChan),
 	}
 }
 
-func (m *FrameStore) FrameChan(addr string) <-chan []byte {
+func (m *Server) selectCh(id string) gen.FrameChan {
 	m.mutex.Lock()
-	ch := m.chans[addr]
+	ch := m.chans[id]
 	m.mutex.Unlock()
-	fmt.Printf("querying user %s\n", addr)
+	fmt.Printf("querying user %s\n", id)
 	return ch
 }
 
-func (m *FrameStore) Register(addr string, frameChan chan []byte) {
+func (m *Server) registerCh(id string, ch gen.FrameChan) {
 	m.mutex.Lock()
-	m.chans[addr] = frameChan
+	m.chans[id] = ch
 	m.mutex.Unlock()
-	fmt.Printf("registered user %s\n", addr)
+	fmt.Printf("registered user %s\n", id)
 }
 
-func frameHandler(selector FrameSelector) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case frame := <-selector.FrameChan(r.RemoteAddr):
-			w.Header().Set("Content-Type", "image/png")
-			w.Write(frame)
-		default:
-			http.Error(w, "No image available", http.StatusNotFound)
+func (s *Server) FrameChan(id string) (ch gen.FrameChan) {
+	ch = s.selectCh(id)
+	if ch == nil {
+		ch = gen.NewFrameChan()
+		s.registerCh(id, ch)
+	}
+	return
+}
+
+func (s *Server) handleWs(ws *websocket.Conn) {
+	buf := make([]byte, 1024)
+	n, err := ws.Read(buf)
+	if err != nil {
+		if err == io.EOF {
+			return
 		}
+		fmt.Println("read error: ", err)
+		return
+	}
+	uuid := string(buf[:n])
+	ch := s.FrameChan(uuid)
+	fmt.Println("ws remote uuid: ", uuid)
+	for frame := range ch {
+		ws.Write([]byte(frame))
 	}
 }
 
@@ -58,7 +74,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "index.html")
 }
 
-func submitHandler(optsChan chan gen.Options) http.HandlerFunc {
+func (s *Server) submitHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -85,9 +101,14 @@ func submitHandler(optsChan chan gen.Options) http.HandlerFunc {
 		fmt.Printf("Received shape: %s\n", shapeType)
 		fmt.Printf("Values: %d %d %d %f\n", solidnr, opaquenr, montenr, montedensity)
 
-		optsChan <- gen.Options{
-			Id:              r.RemoteAddr,
-			FrameCh:         make(chan []byte, 64),
+		id := r.FormValue("uuid")
+		if id == "" {
+			id = uuid.NewString()
+			w.Write([]byte(id))
+		}
+
+		opts := gen.Options{
+			FrameCh:         s.FrameChan(id),
 			PopulationSize:  150,
 			NumSolidShapes:  solidnr,
 			NumOpaqueShapes: opaquenr,
@@ -96,19 +117,22 @@ func submitHandler(optsChan chan gen.Options) http.HandlerFunc {
 			ShapeType:       gen.ShapeType(shapeType),
 			InImage:         image,
 		}
+
+		s.wg.Add(1)
+		go handleOpts(&opts)
 	}
+
 }
 
-// TODO make canvas implement `save` method
 func main() {
-	frames := newFrameStore()
-	optsChan := make(chan gen.Options, 100)
+	server := newServer()
 
 	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/submit", submitHandler(optsChan))
-	http.HandleFunc("/frame", frameHandler(frames))
+	http.HandleFunc("/submit", server.submitHandler())
+	//http.HandleFunc("/frame", frameHandler(frames))
+	http.Handle("/ws", websocket.Handler(server.handleWs))
 
-	go func() {
+	func() {
 		fmt.Println("Server started at http://localhost:8080")
 		err := http.ListenAndServe(":8080", nil)
 		if err != nil {
@@ -116,18 +140,7 @@ func main() {
 		}
 	}()
 
-	wg := sync.WaitGroup{}
-	for opts := range optsChan {
-		go func() {
-			wg.Add(1)
-			handleOpts(&opts)
-			//c.SavePNG() //TODO
-			wg.Done()
-		}()
-		frames.Register(opts.Id, opts.FrameCh)
-	}
-	wg.Wait()
-	close(optsChan)
+	server.wg.Wait()
 }
 
 func handleOpts(o *gen.Options) {
@@ -169,19 +182,9 @@ func handleOpts(o *gen.Options) {
 	}
 	for _, conf := range procSteps {
 		c.Process(conf, o.FrameCh)
-		err := c.SaveSVGsToFile("output.txt")
-		if err != nil {
-			fmt.Println("Error saving SVG data:", err)
-		}
 	}
-}
-
-func genOutPath(originalPath string) string {
-	filename := filepath.Base(originalPath)
-	filenameWithoutExt := filename[:len(filename)-len(filepath.Ext(filename))]
-	timestamp := time.Now().Format("20060102_150405")
-	newFilename := fmt.Sprintf("%s_%s.png", filenameWithoutExt, timestamp)
-	out := filepath.Join("./img_res", newFilename)
-	println("Saving to", out)
-	return out
+	err := c.SaveSVGsToFile("output.txt")
+	if err != nil {
+		fmt.Println("Error saving SVG data:", err)
+	}
 }
