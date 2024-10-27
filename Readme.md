@@ -18,7 +18,7 @@ This algorithm is ran 3 times, each with a sligtht variation.
 ## Results:
 
 ![input image](./server/img_test/in.png)
-![result](.server/img_res/in_20240416_185948.png )
+![result](./server/img_res/in_20240416_185948.png)
 
 ---
 
